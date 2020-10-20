@@ -36,13 +36,12 @@ public class ALLTransportRestCont {
     @GetMapping({"/template"})
     public ResponseEntity<ByteArrayResource> downloadTemplate(
             @RequestParam(value = "dataUUID", required = true) String dataUUID,
-            @RequestParam(value = "tableID", required = true) String tableID,
             @RequestParam(value = "excludes", required = true) Set<String> excludes,
             @RequestHeader("Authorization") String auth) throws Exception {
         try {
             Date date = new Date();
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            XSSFWorkbook workbook = allTransportService.getXlSXList(dataUUID, auth, tableID, excludes);
+            XSSFWorkbook workbook = allTransportService.getXlSXList(dataUUID, auth, excludes);
             HttpHeaders header = new HttpHeaders();
             header.setContentType(new MediaType("application", "force-download"));
             header.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=sales_plan_" + formatter.format(date) + ".xlsx");

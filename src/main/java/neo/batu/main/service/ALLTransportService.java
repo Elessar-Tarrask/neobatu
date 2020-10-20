@@ -48,11 +48,10 @@ public class ALLTransportService {
         return getFileIdentifier(dataUUID);
     }
 
-    public XSSFWorkbook getXlSXList(String dataUUID, String auth, String tableID, Set<String> excludes) throws IOException, URISyntaxException {
+    public XSSFWorkbook getXlSXList(String dataUUID, String auth, Set<String> excludes) throws IOException, URISyntaxException {
         categories5Percent = excludes;
         String identifier = getFileIdentifier(dataUUID);
         XSSFWorkbook myWorkBook = null;
-        System.out.println(identifier);
         XSSFSheet mySheet = null;
 
         try {
@@ -66,12 +65,40 @@ public class ALLTransportService {
         } catch (Exception err) {
             System.out.println(err);
         }
+
+
+        List<BusData> busDataList = new ArrayList<>();
         if (mySheet != null)
-            saveTableIntoForm(getDriveWayCategories(mySheet), dataUUID, tableID);
+            saveTableCategoryIntoForm(getDriveWayCategories(mySheet, busDataList), dataUUID, "table-categories");
+        if (busDataList.size() > 0)
+            saveTableBusesIntoForm(busDataList, dataUUID, "table_bus_data");
+
         return myWorkBook;
     }
 
-    public void saveTableIntoForm(TreeSet<String> categories, String dataUUID, String tableID) {
+    public void saveTableBusesIntoForm(List<BusData> busDataList, String dataUUID, String tableID) {
+        TableData tableData = new TableData(dataUUID, tableID);
+
+        int i = 1;
+        for (BusData busData : busDataList) {
+
+            tableData.getData().add(new RowData("bus-number-b" + i, "textbox", busData.getBusNumber()));
+
+            tableData.getData().add(new RowData("transactions_total-b" + i, "textbox", String.valueOf(busData.getCycles())));
+
+            tableData.getData().add(new RowData("total_sum-b" + i, "textbox", String.valueOf(busData.getSum())));
+
+            tableData.getData().add(new RowData("total_sum_percent-b" + i, "textbox", String.valueOf(busData.getBasic_price_percent())));
+
+            tableData.getData().add(new RowData("beneficiaries_percent-b" + i, "textbox", String.valueOf(busData.getBeneficiaries_percent())));
+
+            i++;
+        }
+
+        feignClientRepo.saveTableData(getAuthorization(), tableData);
+    }
+
+    public void saveTableCategoryIntoForm(TreeSet<String> categories, String dataUUID, String tableID) {
         TableData tableData = new TableData(dataUUID, tableID);
 
         int i = 1;
@@ -99,10 +126,9 @@ public class ALLTransportService {
         feignClientRepo.saveTableData(getAuthorization(), tableData);
     }
 
-    public TreeSet<String> getDriveWayCategories(XSSFSheet mySheet) {
+    public TreeSet<String> getDriveWayCategories(XSSFSheet mySheet, List<BusData> busDataList) {
         TreeSet<String> categories = new TreeSet();
         Iterator<Row> it = mySheet.iterator();
-        List<BusData> busDataList = new ArrayList<>();
         try {
             while (it.hasNext()) {
                 Row row = it.next();
