@@ -44,7 +44,6 @@ public class DriverTimeSheetService {
     public XSSFWorkbook getXlSXList(String dataUUID, String auth) throws IOException, URISyntaxException {
         List<ComponentData> mainData = getDataByDataUUID(dataUUID, auth, url);
 
-        String[] total = {"listbox-qbkvn3_copy2", "label-0dxdvw_copy1", "1t_itog", "32t_itog", "ra_zarp1", "34t_itog"};
         Resource resource = new ClassPathResource("driver-timesheet.xlsx");
         FileInputStream file = new FileInputStream(resource.getFile());
         XSSFWorkbook workbook = new XSSFWorkbook(file);
