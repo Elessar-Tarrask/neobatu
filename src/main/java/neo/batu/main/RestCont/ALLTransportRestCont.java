@@ -20,7 +20,7 @@ import java.util.Set;
 
 @RestController
 @CrossOrigin(origins = "*", allowedHeaders = "*")
-@RequestMapping({"/api/parse/"})
+@RequestMapping({"/api/update/"})
 @RequiredArgsConstructor
 public class ALLTransportRestCont {
 
@@ -33,11 +33,18 @@ public class ALLTransportRestCont {
         return allTransportService.test(dataUUID);
     }
 
+    @GetMapping("/tables")
+    public void getUpdateTables(@RequestParam(value = "dataUUID", required = true) String dataUUID,
+                                @RequestParam(value = "excludes", required = true) Set<String> excludes,
+                                @RequestParam("Authorization") String auth) throws Exception {
+        allTransportService.updateTables(dataUUID, auth, excludes);
+    }
+
     @GetMapping({"/template"})
     public ResponseEntity<ByteArrayResource> downloadTemplate(
             @RequestParam(value = "dataUUID", required = true) String dataUUID,
             @RequestParam(value = "excludes", required = true) Set<String> excludes,
-            @RequestHeader("Authorization") String auth) throws Exception {
+            @RequestParam("Authorization") String auth) throws Exception {
         try {
             Date date = new Date();
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
@@ -54,5 +61,4 @@ public class ALLTransportRestCont {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
 }

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 
-@FeignClient(value = "report", url = "${host}")
+@FeignClient(value = "report", url = "${hostMain}")
 public interface FeignClientRepo {
 
     @GetMapping("")
