@@ -98,10 +98,6 @@ public class ALLTransportService {
         List<BusData> busDataList = new ArrayList<>();
 
         TreeSet<String> categories = getTableCategories(dataUUID);
-        //if (mySheet != null)
-        //saveTableCategoryIntoForm(categories, dataUUID, "table-categories");
-        //if (busDataList.size() > 0)
-        //saveTableBusesIntoForm(busDataList, dataUUID, "table_bus_data");
 
         for (String category : categories) {
             System.out.println(category);
