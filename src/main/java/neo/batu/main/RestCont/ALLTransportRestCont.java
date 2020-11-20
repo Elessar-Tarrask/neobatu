@@ -35,7 +35,7 @@ public class ALLTransportRestCont {
 
     @GetMapping("/tables")
     public void getUpdateTables(@RequestParam(value = "dataUUID", required = true) String dataUUID,
-                                @RequestParam(value = "excludes", required = true) Set<String> excludes,
+                                @RequestParam(value = "excludes", required = false) Set<String> excludes,
                                 @RequestParam("Authorization") String auth) throws Exception {
         allTransportService.updateTables(dataUUID, auth, excludes);
     }

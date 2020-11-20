@@ -50,31 +50,61 @@ public class ALLTransportService {
     }
 
     public void updateTables(String dataUUID, String auth, Set<String> excludes) throws IOException, URISyntaxException {
-        categories5Percent = excludes;
+//        categories5Percent = excludes;
         String identifier = getFileIdentifier(dataUUID);
         XSSFWorkbook myWorkBook = null;
         XSSFSheet mySheet = null;
+        XSSFSheet smsSheet = null;
 
         try {
             myWorkBook = new XSSFWorkbook(getFileByteArray(identifier));
         } catch (Exception err) {
             LOGGER.error("no file");
         }
+
         try {
             mySheet = myWorkBook.getSheetAt(0);
             mySheet.iterator();
         } catch (Exception err) {
-            System.out.println(err);
+            System.out.println(err.getMessage());
+        }
+
+        try {
+            smsSheet = myWorkBook.getSheetAt(1);
+            smsSheet.iterator();
+        } catch (Exception err) {
+            System.out.println(err.getMessage());
         }
 
         List<BusData> busDataList = new ArrayList<>();
+
+        Map<String, String> smsDatas = getSmsDatas(smsSheet);
+
 
         TreeSet<String> categories = getDriveWayCategories(mySheet, busDataList);
         if (mySheet != null)
             saveTableCategoryIntoForm(categories, dataUUID, "table-categories");
         if (busDataList.size() > 0)
-            saveTableBusesIntoForm(busDataList, dataUUID, "table_bus_data");
+            saveTableBusesIntoForm(busDataList, dataUUID, "table_bus_data", smsDatas);
 
+    }
+
+    private Map<String, String> getSmsDatas(XSSFSheet smsSheet) {
+        Map<String, String> smsDatas = new HashMap<>();
+        Iterator<Row> it = smsSheet.iterator();
+        it.next();
+        try {
+            while (it.hasNext()) {
+                Row row = it.next();
+                String smsData = Double.toString(row.getCell(8).getNumericCellValue());
+                String busNumber = row.getCell(4).getStringCellValue();
+                smsDatas.put(busNumber, smsData);
+            }
+        } catch (Exception err) {
+            LOGGER.error(String.valueOf(err));
+        }
+
+        return smsDatas;
     }
 
     public XSSFWorkbook getXlSXList(String dataUUID, String auth, Set<String> excludes) throws IOException, URISyntaxException {
@@ -231,7 +261,7 @@ public class ALLTransportService {
         return totalNewRows;
     }
 
-    private void saveTableBusesIntoForm(List<BusData> busDataList, String dataUUID, String tableID) {
+    private void saveTableBusesIntoForm(List<BusData> busDataList, String dataUUID, String tableID, Map<String, String> smsDatas) {
         TableData tableData = new TableData(dataUUID, tableID);
 
         int i = 1;
@@ -246,6 +276,8 @@ public class ALLTransportService {
             tableData.getData().add(new RowData("total_sum_percent-b" + i, "textbox", String.valueOf(busData.getBasic_price_percent())));
 
             tableData.getData().add(new RowData("beneficiaries_percent-b" + i, "textbox", String.valueOf(busData.getBeneficiaries_percent())));
+
+            tableData.getData().add(new RowData("smsData-b" + i, "textbox", String.valueOf(smsDatas.getOrDefault(busData.getBusNumber(), ""))));
 
             i++;
         }
@@ -281,7 +313,7 @@ public class ALLTransportService {
     }
 
     private TreeSet<String> getDriveWayCategories(XSSFSheet mySheet, List<BusData> busDataList) {
-        TreeSet<String> categories = new TreeSet<String>();
+        TreeSet<String> categories = new TreeSet<>();
         Iterator<Row> it = mySheet.iterator();
         try {
             while (it.hasNext()) {
