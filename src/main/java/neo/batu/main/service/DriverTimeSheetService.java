@@ -5,6 +5,7 @@ import com.google.gson.reflect.TypeToken;
 import feign.Response;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import neo.batu.main.Entity.ComponentData;
 import neo.batu.main.repo.FeignClientRepo;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -40,6 +41,7 @@ public class DriverTimeSheetService {
 
     @Value("${host}")
     private String url;
+    private int rowcol = 1;
 
     public XSSFWorkbook getXlSXList(String dataUUID, String auth) throws IOException, URISyntaxException {
         List<ComponentData> mainData = getDataByDataUUID(dataUUID, auth, url);
@@ -84,26 +86,37 @@ public class DriverTimeSheetService {
 
     public void setRoute(XSSFSheet sheet ,List<ComponentData> data) {
         String routeId = "label-y823g6";
-        int rowcol = 12;
+        rowcol += 10;
         ComponentData route = findComponentData(routeId, data);
+        if (sheet.getRow((rowcol + 1) / 10) == null) {
+            sheet.createRow((rowcol + 1) / 10);
+        }
         if (route != null && route.getLabel() != null) {
-            sheet.getRow(rowcol / 10).createCell(rowcol % 10).setCellValue(route.getLabel());
+            sheet.getRow((rowcol + 1) / 10).createCell((rowcol) % 10).setCellValue("Номер маршрута:");
+            sheet.getRow((rowcol + 1) / 10).createCell((rowcol  + 1) % 10).setCellValue(route.getLabel());
         }
     }
 
     public void setDate(XSSFSheet sheet, List<ComponentData> data) {
         String dateId = "date-worked";
-        int rowcol = 32;
+        rowcol += 20;
         ComponentData date = findComponentData(dateId, data);
+        if (sheet.getRow((rowcol + 1) / 10) == null) {
+            sheet.createRow((rowcol + 1) / 10);
+        }
         if (date != null && date.getValue() != null) {
-            sheet.getRow(rowcol / 10).createCell(rowcol % 10).setCellValue(date.getValue());
+            sheet.getRow((rowcol + 1) / 10).createCell((rowcol) % 10).setCellValue("Дата создания отчета:");
+            sheet.getRow((rowcol + 1) / 10).createCell((rowcol + 1) % 10).setCellValue(date.getValue());
         }
     }
 
     public void setTimeSheetLabel(XSSFSheet sheet, List<ComponentData> data) {
         String labelId = "label-zc0ofr";
-        int rowcol = 51;
+        rowcol += 20;
         ComponentData label = findComponentData(labelId, data);
+        if (sheet.getRow((rowcol) / 10) == null) {
+            sheet.createRow((rowcol) / 10);
+        }
         if (label != null && label.getLabel() != null) {
             sheet.createRow(rowcol / 10).createCell(rowcol % 10).setCellValue(label.getLabel());
         }
@@ -111,23 +124,36 @@ public class DriverTimeSheetService {
 
     public void setTimeSheet(XSSFSheet sheet, List<ComponentData> mainData, CellStyle style) {
         String tableId = "table-x191df";
-        int start = 7, end = 36, count = 1;
+        rowcol += 20;
+        int count = 1;
         ComponentData table = findComponentData(tableId, mainData);
-        if (table != null && table.getData() != null) {
-            List<ComponentData> datas = table.getData();
-            XSSFRow row = sheet.createRow(start);
-            for (ComponentData data : datas) {
-                XSSFCell cell = row.createCell(count);
-                if (data.getLabel() != null) {
-                    cell.setCellValue(data.getLabel());
-                }else if (data.getValue() != null) {
-                    cell.setCellValue(data.getValue());
-                }
-                cell.setCellStyle(style);
-                count++;
-                if (count > end) {
-                    count = 1;
-                    row = sheet.createRow(++start);
+        if (table != null) {
+            int end = countLabels(table.getData());
+            if (table.getData() != null) {
+                List<ComponentData> datas = table.getData();
+                XSSFRow row = sheet.createRow(rowcol / 10);
+                for (ComponentData data : datas) {
+                    XSSFCell cell = row.createCell(count);
+                    if (data.getLabel() != null) {
+                        try {
+                            cell.setCellValue(Double.parseDouble(data.getLabel()));
+                        }catch (Exception e) {
+                            cell.setCellValue(data.getLabel());
+                        }
+                    } else if (data.getValue() != null) {
+                        try {
+                            cell.setCellValue(Double.parseDouble(data.getValue()));
+                        }catch (Exception e) {
+                            cell.setCellValue(data.getValue());
+                        }
+                    }
+                    cell.setCellStyle(style);
+                    count++;
+                    if (count > end) {
+                        count = 1;
+                        rowcol += 10;
+                        row = sheet.createRow(rowcol / 10);
+                    }
                 }
             }
         }
@@ -135,7 +161,7 @@ public class DriverTimeSheetService {
 
     public void setTimeSheetTotal(XSSFSheet sheet, List<ComponentData> mainData, CellStyle style) {
         String[] valueIds = {"listbox-qbkvn3_copy2", "label-0dxdvw_copy1", "t_itog"};
-        int rowNum = 37, colNum = 1;
+        int rowNum = rowcol / 10, colNum = 1;
         XSSFRow row = sheet.createRow(rowNum);
 
         for (String valueId : valueIds) {
@@ -148,7 +174,11 @@ public class DriverTimeSheetService {
                     XSSFCell cell = row.createCell(colNum + i - 1);
 
                     if (data != null && data.getValue() != null) {
-                        cell.setCellValue(data.getValue());
+                        try {
+                            cell.setCellValue(Double.parseDouble(data.getValue()));
+                        }catch (Exception e) {
+                            cell.setCellValue(data.getValue());
+                        }
                     }
 
                     cell.setCellStyle(style);
@@ -160,9 +190,17 @@ public class DriverTimeSheetService {
 
                 if (label != null) {
                     if (label.getLabel() != null) {
-                        cell.setCellValue(label.getLabel());
+                        try {
+                            cell.setCellValue(Double.parseDouble(label.getLabel()));
+                        }catch (Exception e) {
+                            cell.setCellValue(label.getLabel());
+                        }
                     }else if (label.getValue() != null) {
-                        cell.setCellValue(label.getValue());
+                        try {
+                            cell.setCellValue(Double.parseDouble(label.getValue()));
+                        }catch (Exception e) {
+                            cell.setCellValue(label.getValue());
+                        }
                     }
                 }
 
@@ -170,6 +208,17 @@ public class DriverTimeSheetService {
             }
             colNum++;
         }
+        rowcol += 20;
+    }
+
+    private int countLabels(List<ComponentData> datas) {
+        int count = 0;
+        for (ComponentData data : datas) {
+            if (data.getType().equals("label")) {
+                count++;
+            }
+        }
+        return count;
     }
 
     public ComponentData findComponentData (String id, List<ComponentData> mainData) {
@@ -185,15 +234,5 @@ public class DriverTimeSheetService {
     public static class mainData {
         private String uuid;
         private List<ComponentData> data;
-    }
-
-    @Data
-    public static class ComponentData {
-        private String id;
-        private String type;
-        private String value;
-        private String key;
-        private List<ComponentData> data;
-        private String label;
     }
 }

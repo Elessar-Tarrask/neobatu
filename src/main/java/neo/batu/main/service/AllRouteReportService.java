@@ -5,6 +5,7 @@ import com.google.gson.reflect.TypeToken;
 import feign.Response;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import neo.batu.main.Entity.ComponentData;
 import neo.batu.main.repo.FeignClientRepo;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -40,6 +41,7 @@ public class AllRouteReportService {
     private static int rowcol = 12;
 
     private final FeignClientRepo feignClientRepo;
+    private final DriverTimeSheetService driverTimeSheetService;
     private static final Gson gson = new Gson();
 
     public XSSFWorkbook fillTimeSheetByRoutesAndDate(String date, String auth) throws IOException, URISyntaxException {
@@ -47,7 +49,8 @@ public class AllRouteReportService {
         Resource resource = new ClassPathResource("all-route-report.xlsx");
         FileInputStream file = new FileInputStream(resource.getFile());
         XSSFWorkbook workbook = new XSSFWorkbook(file);
-        XSSFSheet sheet = workbook.getSheetAt(0);
+        XSSFSheet route = workbook.getSheetAt(0);
+        XSSFSheet driver = workbook.getSheetAt(1);
 
         CellStyle style = workbook.createCellStyle();
         style.setBorderBottom(BorderStyle.THIN);
@@ -60,7 +63,8 @@ public class AllRouteReportService {
         List<List<Components>> results = getResults(auth, date);
 
         for (List<Components> components : results) {
-            fillTimeSheet(sheet, style, components.get(0).getDataUUID(), auth);
+            fillTimeSheet(route, style, components.get(0).getDataUUID(), auth);
+            fillDriverSheet(driver, style, components.get(0).getDataUUID(), auth);
         }
 
         return workbook;
@@ -102,6 +106,15 @@ public class AllRouteReportService {
         rowcol += 10;
         setFooter(sheet, mainData, style);
         rowcol += 30;
+    }
+
+    public void fillDriverSheet(XSSFSheet sheet, CellStyle style, String dataUUID, String auth) throws URISyntaxException {
+        List<ComponentData> mainData = getDataByDataUUID(dataUUID, auth, url);
+        driverTimeSheetService.setRoute(sheet, mainData);
+        driverTimeSheetService.setDate(sheet, mainData);
+        driverTimeSheetService.setTimeSheetLabel(sheet, mainData);
+        driverTimeSheetService.setTimeSheet(sheet, mainData, style);
+        driverTimeSheetService.setTimeSheetTotal(sheet, mainData, style);
     }
 
     public List<Components> getResult(String auth, String registryCode, String date) throws URISyntaxException {
@@ -173,10 +186,18 @@ public class AllRouteReportService {
             }
             XSSFCell cell = row.createCell(counter);
             if (data.getLabel() != null) {
-                cell.setCellValue(data.getLabel());
+                try {
+                    cell.setCellValue(Double.parseDouble(data.getLabel()));
+                }catch (Exception e) {
+                    cell.setCellValue(data.getLabel());
+                }
                 style.setWrapText(true);
             }else if (data.getValue() != null && !data.getValue().equals("undefined")) {
-                cell.setCellValue(data.getValue());
+                try {
+                    cell.setCellValue(Double.parseDouble(data.getValue()));
+                }catch (Exception e) {
+                    cell.setCellValue(data.getValue());
+                }
             }
             cell.setCellStyle(style);
             counter++;
@@ -194,23 +215,44 @@ public class AllRouteReportService {
         int counter = 1;
         for (String ids : totalIds) {
             if (ids.equals("b")) {
-                for (int i = 1; i < 25; i++) {
+                for (int i = 1;;i++) {
                     ComponentData data = findComponentData(ids + i, mainData);
+                    if (data == null) {
+                        break;
+                    }
                     XSSFCell cell = row.createCell(counter + i - 1);
                     cell.setCellStyle(style);
                     if (data.getLabel() != null) {
-                        cell.setCellValue(data.getLabel());
+                        try {
+                            cell.setCellValue(Double.parseDouble(data.getLabel()));
+                        }catch (Exception e) {
+                            cell.setCellValue(data.getLabel());
+                        }
                     } else if (data.getValue() != null && !data.getValue().equals("undefined")) {
-                        cell.setCellValue(data.getValue());
+                        try {
+                            cell.setCellValue(Double.parseDouble(data.getValue()));
+                        }catch (Exception e) {
+                            cell.setCellValue(data.getValue());
+                        }
                     }
                 }
             } else {
                 ComponentData data = findComponentData(ids, mainData);
                 XSSFCell cell = row.createCell(counter);
-                if (data.getLabel() != null) {
-                    cell.setCellValue(data.getLabel());
-                } else if (data.getValue() != null && !data.getValue().equals("undefined")) {
-                    cell.setCellValue(data.getValue());
+                if (data != null) {
+                    if (data.getLabel() != null) {
+                        try {
+                            cell.setCellValue(Double.parseDouble(data.getLabel()));
+                        }catch (Exception e) {
+                            cell.setCellValue(data.getLabel());
+                        }
+                    } else if (data.getValue() != null && !data.getValue().equals("undefined")) {
+                        try {
+                            cell.setCellValue(Double.parseDouble(data.getValue()));
+                        }catch (Exception e) {
+                            cell.setCellValue(data.getValue());
+                        }
+                    }
                 }
                 if (ids.equals("listbox-qbkvn3")) {
                     sheet.addMergedRegion(new CellRangeAddress(rowcol/10, rowcol/10, counter,counter + 1));
@@ -265,15 +307,5 @@ public class AllRouteReportService {
     @Data
     public static class FieldValue {
         String date_worked;
-    }
-
-    @Data
-    public static class ComponentData {
-        private String id;
-        private String type;
-        private String value;
-        private String key;
-        private List<ComponentData> data;
-        private String label;
     }
 }
