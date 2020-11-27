@@ -13,6 +13,7 @@ import org.apache.poi.ss.formula.functions.T;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.json.JSONArray;
@@ -157,10 +158,14 @@ public class ALLTransportService {
         cellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
         cellStyle.getFont().setBold(false);
         cellStyle.setWrapText(true);
+        XSSFFont font = workbook.createFont();
+        font.setFontName("Arial Narrow");
+        cellStyle.setFont(font);
 
         XSSFCellStyle cellStyleClone = cellStyle.clone();
         cellStyleClone.setAlignment(HorizontalAlignment.LEFT);
         cellStyleClone.setVerticalAlignment(VerticalAlignment.TOP);
+        cellStyleClone.setFont(font);
         String busNumber = busData.getBusNumber();
         int startingRow = totalNewRows;
         for (String category : categories) {
@@ -238,10 +243,14 @@ public class ALLTransportService {
         xSSFCellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
         xSSFCellStyle.getFont().setBold(true);
         xSSFCellStyle.setWrapText(true);
+        XSSFFont font = workbook.createFont();
+        font.setFontName("Arial Narrow");
+        xSSFCellStyle.setFont(font);
 
         XSSFCellStyle cellStyleClone = xSSFCellStyle.clone();
         cellStyleClone.setAlignment(HorizontalAlignment.LEFT);
         cellStyleClone.setVerticalAlignment(VerticalAlignment.TOP);
+        cellStyleClone.setFont(font);
 
         for (int i = 0; i < labelsNames.length; i++) {
             try {

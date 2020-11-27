@@ -11,10 +11,7 @@ import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.VerticalAlignment;
-import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFRow;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xssf.usermodel.*;
 import org.json.JSONArray;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
@@ -58,10 +55,13 @@ public class DriverTimeSheetService {
         style.setBorderTop(BorderStyle.THIN);
         style.setAlignment(HorizontalAlignment.LEFT);
         style.setVerticalAlignment(VerticalAlignment.CENTER);
+        XSSFFont font = workbook.createFont();
+        font.setFontName("Arial Narrow");
+        style.setFont(font);
 
-        setRoute(sheet, mainData);
-        setDate(sheet, mainData);
-        setTimeSheetLabel(sheet, mainData);
+        setRoute(sheet, mainData, style);
+        setDate(sheet, mainData, style);
+        setTimeSheetLabel(sheet, mainData, style);
         setTimeSheet(sheet, mainData, style);
         setTimeSheetTotal(sheet, mainData, style);
 
@@ -84,7 +84,7 @@ public class DriverTimeSheetService {
         return mainData.get(0).getData();
     }
 
-    public void setRoute(XSSFSheet sheet ,List<ComponentData> data) {
+    public void setRoute(XSSFSheet sheet ,List<ComponentData> data, CellStyle style) {
         String routeId = "label-y823g6";
         rowcol += 10;
         ComponentData route = findComponentData(routeId, data);
@@ -92,12 +92,17 @@ public class DriverTimeSheetService {
             sheet.createRow((rowcol + 1) / 10);
         }
         if (route != null && route.getLabel() != null) {
-            sheet.getRow((rowcol + 1) / 10).createCell((rowcol) % 10).setCellValue("Номер маршрута:");
-            sheet.getRow((rowcol + 1) / 10).createCell((rowcol  + 1) % 10).setCellValue(route.getLabel());
+            XSSFCell cell, cell1;
+            cell = sheet.getRow((rowcol + 1) / 10).createCell((rowcol) % 10);
+            cell.setCellValue("Номер маршрута:");
+            cell.setCellStyle(style);
+            cell1 = sheet.getRow((rowcol + 1) / 10).createCell((rowcol  + 1) % 10);
+            cell1.setCellValue(route.getLabel());
+            cell1.setCellStyle(style);
         }
     }
 
-    public void setDate(XSSFSheet sheet, List<ComponentData> data) {
+    public void setDate(XSSFSheet sheet, List<ComponentData> data, CellStyle style) {
         String dateId = "date-worked";
         rowcol += 20;
         ComponentData date = findComponentData(dateId, data);
@@ -105,12 +110,17 @@ public class DriverTimeSheetService {
             sheet.createRow((rowcol + 1) / 10);
         }
         if (date != null && date.getValue() != null) {
-            sheet.getRow((rowcol + 1) / 10).createCell((rowcol) % 10).setCellValue("Дата создания отчета:");
-            sheet.getRow((rowcol + 1) / 10).createCell((rowcol + 1) % 10).setCellValue(date.getValue());
+            XSSFCell cell, cell1;
+            cell = sheet.getRow((rowcol + 1) / 10).createCell((rowcol) % 10);
+            cell.setCellValue("Дата создания отчета:");
+            cell.setCellStyle(style);
+            cell1 = sheet.getRow((rowcol + 1) / 10).createCell((rowcol + 1) % 10);
+            cell1.setCellValue(date.getValue());
+            cell1.setCellStyle(style);
         }
     }
 
-    public void setTimeSheetLabel(XSSFSheet sheet, List<ComponentData> data) {
+    public void setTimeSheetLabel(XSSFSheet sheet, List<ComponentData> data, CellStyle style) {
         String labelId = "label-zc0ofr";
         rowcol += 20;
         ComponentData label = findComponentData(labelId, data);
@@ -118,7 +128,10 @@ public class DriverTimeSheetService {
             sheet.createRow((rowcol) / 10);
         }
         if (label != null && label.getLabel() != null) {
-            sheet.createRow(rowcol / 10).createCell(rowcol % 10).setCellValue(label.getLabel());
+            XSSFCell cell;
+            cell = sheet.createRow(rowcol / 10).createCell(rowcol % 10);
+            cell.setCellValue(label.getLabel());
+            cell.setCellStyle(style);
         }
     }
 

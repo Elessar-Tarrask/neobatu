@@ -7,15 +7,9 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import neo.batu.main.Entity.ComponentData;
 import neo.batu.main.repo.FeignClientRepo;
-import org.apache.poi.ss.usermodel.BorderStyle;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.HorizontalAlignment;
-import org.apache.poi.ss.usermodel.VerticalAlignment;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
-import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFRow;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xssf.usermodel.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
@@ -59,6 +53,9 @@ public class AllRouteReportService {
         style.setBorderTop(BorderStyle.THIN);
         style.setAlignment(HorizontalAlignment.LEFT);
         style.setVerticalAlignment(VerticalAlignment.CENTER);
+        XSSFFont font = workbook.createFont();
+        font.setFontName("Arial Narrow");
+        style.setFont(font);
 
         List<List<Components>> results = getResults(auth, date);
 
@@ -96,9 +93,9 @@ public class AllRouteReportService {
     public void fillTimeSheet(XSSFSheet sheet, CellStyle style, String dataUUID, String auth) throws URISyntaxException {
         List<ComponentData> mainData = getDataByDataUUID(dataUUID, auth, url);
 
-        setRoute(sheet, mainData);
+        setRoute(sheet, mainData, style);
         rowcol += 20;
-        setDate(sheet, mainData);
+        setDate(sheet, mainData, style);
         rowcol += 20;
 //        setHeader(sheet, mainData, style);
 //        rowcol+= 10;
@@ -110,9 +107,9 @@ public class AllRouteReportService {
 
     public void fillDriverSheet(XSSFSheet sheet, CellStyle style, String dataUUID, String auth) throws URISyntaxException {
         List<ComponentData> mainData = getDataByDataUUID(dataUUID, auth, url);
-        driverTimeSheetService.setRoute(sheet, mainData);
-        driverTimeSheetService.setDate(sheet, mainData);
-        driverTimeSheetService.setTimeSheetLabel(sheet, mainData);
+        driverTimeSheetService.setRoute(sheet, mainData, style);
+        driverTimeSheetService.setDate(sheet, mainData, style);
+        driverTimeSheetService.setTimeSheetLabel(sheet, mainData, style);
         driverTimeSheetService.setTimeSheet(sheet, mainData, style);
         driverTimeSheetService.setTimeSheetTotal(sheet, mainData, style);
     }
@@ -152,23 +149,32 @@ public class AllRouteReportService {
         return mainData.get(0).getData();
     }
 
-    public void setRoute(XSSFSheet sheet ,List<ComponentData> data) {
+    public void setRoute(XSSFSheet sheet ,List<ComponentData> data, CellStyle style) {
         String routeId = "label-y823g6";
         ComponentData route = findComponentData(routeId, data);
-        XSSFRow row = sheet.createRow(rowcol / 10).createCell((rowcol - 1) % 10).getRow();
-        row.getCell((rowcol - 1) % 10).setCellValue("Номер маршрута:");
+        XSSFRow row = sheet.createRow(rowcol / 10);
+        XSSFCell cell = row.createCell((rowcol - 1) % 10);
+        cell.setCellStyle(style);
+        cell.setCellValue("Номер маршрута:");
         if (route != null && route.getLabel() != null) {
-            sheet.getRow(rowcol / 10).createCell(rowcol % 10).setCellValue(route.getLabel());
+            XSSFCell cell1 = row.createCell(rowcol % 10);
+            cell1.setCellStyle(style);
+            cell1.setCellValue(route.getLabel());
         }
     }
 
-    public void setDate(XSSFSheet sheet, List<ComponentData> data) {
+
+    public void setDate(XSSFSheet sheet, List<ComponentData> data, CellStyle style) {
         String dateId = "date-worked";
         ComponentData date = findComponentData(dateId, data);
-        XSSFRow row = sheet.createRow(rowcol / 10).createCell((rowcol - 1) % 10).getRow();
-        row.getCell((rowcol - 1) % 10).setCellValue("Дата создания отчета:");
+        XSSFRow row = sheet.createRow(rowcol / 10);
+        XSSFCell cell = row.createCell((rowcol - 1) % 10);
+        cell.setCellStyle(style);
+        cell.setCellValue("Дата создания отчета:");
         if (date != null && date.getValue() != null) {
-            sheet.getRow(rowcol / 10).createCell(rowcol % 10).setCellValue(date.getValue());
+            XSSFCell cell1 = row.createCell(rowcol % 10);
+            cell1.setCellStyle(style);
+            cell1.setCellValue(date.getValue());;
         }
     }
 
