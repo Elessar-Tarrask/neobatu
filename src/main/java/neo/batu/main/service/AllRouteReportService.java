@@ -86,7 +86,6 @@ public class AllRouteReportService {
             if (!result.isEmpty())
                 results.add(result);
         }
-
         return results;
     }
 

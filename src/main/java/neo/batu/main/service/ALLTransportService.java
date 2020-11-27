@@ -1,6 +1,5 @@
 package neo.batu.main.service;
 
-import com.fasterxml.jackson.core.sym.NameN;
 import feign.Response;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -9,8 +8,10 @@ import neo.batu.main.Entity.TableData;
 import neo.batu.main.repo.FeignClientRepo;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.math3.util.Precision;
-import org.apache.poi.ss.formula.functions.T;
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.BorderStyle;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFFont;
@@ -18,6 +19,8 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
@@ -27,9 +30,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Service
 @RequiredArgsConstructor
@@ -81,6 +81,19 @@ public class ALLTransportService {
 
         Map<String, String> smsDatas = getSmsDatas(smsSheet);
 
+        try {
+            smsSheet = myWorkBook.getSheetAt(2);
+            smsSheet.iterator();
+        } catch (Exception err) {
+            System.out.println(err.getMessage());
+        }
+
+        try {
+            smsSheet = myWorkBook.getSheetAt(3);
+            smsSheet.iterator();
+        } catch (Exception err) {
+            System.out.println(err.getMessage());
+        }
 
         TreeSet<String> categories = getDriveWayCategories(mySheet, busDataList);
         if (mySheet != null)
@@ -88,6 +101,43 @@ public class ALLTransportService {
         if (busDataList.size() > 0)
             saveTableBusesIntoForm(busDataList, dataUUID, "table_bus_data", smsDatas);
 
+        saveTableStorageIntoForm(getStorageData(smsSheet), dataUUID, "table-storage");
+    }
+
+    private HashMap<Double, Double> getStorageData(XSSFSheet smsSheet) {
+        HashMap<Double, Double> storageData = new HashMap<>();
+        storageData.put(48.0, 0.0);
+        storageData.put(22.0, 0.0);
+        storageData.put(1.0, 0.0);
+        storageData.put(102.0, 0.0);
+        storageData.put(15.0, 0.0);
+        storageData.put(122.0, 0.0);
+        storageData.put(14.0, 0.0);
+        storageData.put(46.0, 0.0);
+        Iterator<Row> it = smsSheet.iterator();
+        it.next();
+        try {
+            while (it.hasNext()) {
+                Row row = it.next();
+                switch (row.getCell(2).getCellType()) {
+                    case NUMERIC:
+                        Double route = row.getCell(2).getNumericCellValue();
+                        Double routeValue = row.getCell(10).getNumericCellValue();
+                        if (storageData.containsKey(route)) {
+                            storageData.put(route, storageData.get(route) + routeValue);
+                        } else {
+                            storageData.put(route, routeValue);
+                        }
+                        break;
+                    case STRING:
+                    default:
+                        break;
+                }
+            }
+        } catch (Exception err) {
+            LOGGER.error(String.valueOf(err));
+        }
+        return storageData;
     }
 
     private Map<String, String> getSmsDatas(XSSFSheet smsSheet) {
@@ -268,6 +318,20 @@ public class ALLTransportService {
         totalNewRows++;
 
         return totalNewRows;
+    }
+
+    private void saveTableStorageIntoForm(HashMap<Double, Double> storageData, String dataUUID, String tableID) {
+        TableData tableData = new TableData(dataUUID, tableID);
+
+        int i = 1;
+        for (Double key : storageData.keySet()) {
+            tableData.getData().add(new RowData("route_number-b" + i, "textbox", String.valueOf(key)));
+
+            tableData.getData().add(new RowData("daily_storage_sum-b" + i, "textbox", String.valueOf(storageData.get(key))));
+
+            i++;
+        }
+        Response response = feignClientRepo.saveTableData(getAuthorization(), tableData);
     }
 
     private void saveTableBusesIntoForm(List<BusData> busDataList, String dataUUID, String tableID, Map<String, String> smsDatas) {

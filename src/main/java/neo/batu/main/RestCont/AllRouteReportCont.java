@@ -20,6 +20,7 @@ import java.util.Date;
 @RequestMapping({"/api/routes/"})
 @RequiredArgsConstructor
 public class AllRouteReportCont {
+
     @Autowired
     AllRouteReportService allRouteReportService;
 
