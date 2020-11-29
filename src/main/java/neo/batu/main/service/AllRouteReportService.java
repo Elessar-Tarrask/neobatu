@@ -6,6 +6,8 @@ import feign.Response;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import neo.batu.main.Entity.ComponentData;
+import neo.batu.main.Entity.Components;
+import neo.batu.main.Entity.Registry;
 import neo.batu.main.repo.FeignClientRepo;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
@@ -296,21 +298,5 @@ public class AllRouteReportService {
     public static class mainData {
         private String uuid;
         private List<ComponentData> data;
-    }
-
-    @Data
-    public static class Registry {
-        List<Components> result;
-    }
-
-    @Data
-    public static class Components {
-        String dataUUID;
-        FieldValue fieldValue;
-    }
-
-    @Data
-    public static class FieldValue {
-        String date_worked;
     }
 }
