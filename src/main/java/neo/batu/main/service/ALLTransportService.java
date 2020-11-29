@@ -51,7 +51,7 @@ public class ALLTransportService {
     }
 
     public void updateTables(String dataUUID, String auth, Set<String> excludes) throws IOException, URISyntaxException {
-//        categories5Percent = excludes;
+        categories5Percent = excludes;
         String identifier = getFileIdentifier(dataUUID);
         XSSFWorkbook myWorkBook = null;
         XSSFSheet mySheet = null;
@@ -67,14 +67,14 @@ public class ALLTransportService {
             mySheet = myWorkBook.getSheetAt(0);
             mySheet.iterator();
         } catch (Exception err) {
-            System.out.println(err.getMessage());
+            LOGGER.error(err.getMessage());
         }
 
         try {
             smsSheet = myWorkBook.getSheetAt(1);
             smsSheet.iterator();
         } catch (Exception err) {
-            System.out.println(err.getMessage());
+            LOGGER.error(err.getMessage());
         }
 
         List<BusData> busDataList = new ArrayList<>();
@@ -85,15 +85,27 @@ public class ALLTransportService {
             smsSheet = myWorkBook.getSheetAt(2);
             smsSheet.iterator();
         } catch (Exception err) {
-            System.out.println(err.getMessage());
+            LOGGER.error(err.getMessage());
         }
+        List<DataFromTX> dataFromTXESList = parseAllDataFromTH(smsSheet);
 
         try {
             smsSheet = myWorkBook.getSheetAt(3);
             smsSheet.iterator();
         } catch (Exception err) {
-            System.out.println(err.getMessage());
+            LOGGER.error(err.getMessage());
         }
+
+        addSmsData(smsSheet, dataFromTXESList);
+
+        try {
+            smsSheet = myWorkBook.getSheetAt(4);
+            smsSheet.iterator();
+        } catch (Exception err) {
+            LOGGER.error(err.getMessage());
+        }
+
+        saveTableStorageIntoForm(getStorageData(smsSheet), dataUUID, "table-storage");
 
         TreeSet<String> categories = getDriveWayCategories(mySheet, busDataList);
         if (mySheet != null)
@@ -101,7 +113,76 @@ public class ALLTransportService {
         if (busDataList.size() > 0)
             saveTableBusesIntoForm(busDataList, dataUUID, "table_bus_data", smsDatas);
 
-        saveTableStorageIntoForm(getStorageData(smsSheet), dataUUID, "table-storage");
+        saveTableAllTransport(dataFromTXESList, dataUUID, "table_all_transport");
+
+    }
+
+    private void addSmsData(XSSFSheet smsSheet, List<DataFromTX> dataFromTXESList) {
+        Iterator<Row> it = smsSheet.iterator();
+        it.next();
+        try {
+            while (it.hasNext()) {
+                Row row = it.next();
+                switch (row.getCell(2).getCellType()) {
+                    case NUMERIC:
+                        String routeNumber = String.valueOf(row.getCell(2).getNumericCellValue());
+                        routeNumber = routeNumber.substring(0, routeNumber.length() - 2);
+                        for (int i = 0; i < dataFromTXESList.size(); i++) {
+                            if (dataFromTXESList.get(i).getRouteNumber().contains(routeNumber)) {
+                                dataFromTXESList.get(i).setSMS_transactions(row.getCell(7).getNumericCellValue());
+                            }
+                        }
+                        break;
+                    case STRING:
+                        break;
+                    default:
+                        break;
+                }
+            }
+        } catch (Exception err) {
+            LOGGER.error(String.valueOf(err));
+        }
+    }
+
+    private List<DataFromTX> parseAllDataFromTH(XSSFSheet smsSheet) {
+        List<DataFromTX> dataFromTXESList = new ArrayList<>();
+        Iterator<Row> it = smsSheet.iterator();
+        it.next();
+        try {
+            while (it.hasNext()) {
+                Row row = it.next();
+                switch (row.getCell(0).getCellType()) {
+                    case NUMERIC:
+//                        Double route = row.getCell(2).getNumericCellValue();
+//                        Double routeValue = row.getCell(10).getNumericCellValue();
+//                        if (storageData.containsKey(route)) {
+//                            storageData.put(route, storageData.get(route) + routeValue);
+//                        } else {
+//                            storageData.put(route, routeValue);
+//                        }
+                        break;
+                    case STRING:
+                        if (row.getCell(0).getStringCellValue().contains("Итого всего:")) {
+                            if (row.getCell(0).getStringCellValue().contains("Итого всего:")) {
+                                for (int i = 0; i < 8; i++) {
+                                    DataFromTX dataFromTX = new DataFromTX(smsSheet.getRow(1).getCell(8 + i * 6).getStringCellValue());
+                                    dataFromTX.setTT_trips(row.getCell(8 + i * 6).getNumericCellValue());
+                                    dataFromTX.setTT_trips_sum(row.getCell(9 + i * 6).getNumericCellValue());
+                                    dataFromTX.setMTT_trips(row.getCell(10 + i * 6).getNumericCellValue());
+                                    dataFromTX.setMTT_trips_sum(row.getCell(11 + i * 6).getNumericCellValue());
+                                    dataFromTXESList.add(dataFromTX);
+                                }
+                            }
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+        } catch (Exception err) {
+            LOGGER.error(String.valueOf(err));
+        }
+        return dataFromTXESList;
     }
 
     private HashMap<Double, Double> getStorageData(XSSFSheet smsSheet) {
@@ -173,16 +254,12 @@ public class ALLTransportService {
             mySheet = myWorkBook.getSheetAt(0);
             mySheet.iterator();
         } catch (Exception err) {
-            System.out.println(err);
+            LOGGER.error(err.getMessage());
         }
 
         List<BusData> busDataList = new ArrayList<>();
 
         TreeSet<String> categories = getTableCategories(dataUUID);
-
-        for (String category : categories) {
-            System.out.println(category);
-        }
 
         ClassPathResource classPathResource = new ClassPathResource("shablon.xlsx");
         FileInputStream file = new FileInputStream(classPathResource.getFile());
@@ -222,7 +299,6 @@ public class ALLTransportService {
             sheet.createRow(totalNewRows);
             if (!busNumber.isEmpty()) {
 
-                //System.out.println("bus" + i);
                 sheet.getRow(totalNewRows).createCell(0);
                 sheet.getRow(totalNewRows).getCell(0).setCellValue(busNumber);
                 sheet.getRow(totalNewRows).getCell(0).setCellStyle(cellStyleClone);
@@ -244,8 +320,7 @@ public class ALLTransportService {
                     sheet.getRow(totalNewRows).createCell(i);
                     sheet.getRow(totalNewRows).getCell(i).setCellStyle(cellStyle);
                 } catch (Exception err) {
-                    System.out.println(err);
-                    System.out.println(err.getMessage());
+                    LOGGER.error(err.getMessage());
                 }
             }
 
@@ -256,12 +331,10 @@ public class ALLTransportService {
                             categoryEachData.getBasic_price_percent(), categoryEachData.getBeneficiaries_percent()};
                     for (int i = 2; i < 8; i++) {
                         try {
-                            //System.out.println(i);
                             sheet.getRow(totalNewRows).getCell(i).setCellValue(eachLine[i]);
 
                         } catch (Exception err) {
-                            System.out.println(err);
-                            System.out.println(err.getMessage());
+                            LOGGER.error(err.getMessage());
                         }
                     }
                 }
@@ -271,8 +344,7 @@ public class ALLTransportService {
         try {
             sheet.addMergedRegion(new CellRangeAddress(startingRow, totalNewRows - 1, 0, 0));
         } catch (Exception exception) {
-            System.out.println("merging Exception");
-            //System.out.println(exception);
+            LOGGER.error("merging Exception, " + exception.getMessage());
         }
         return totalNewRows;
     }
@@ -312,12 +384,34 @@ public class ALLTransportService {
                     sheet.getRow(totalNewRows).getCell(i).setCellStyle(xSSFCellStyle);
                 }
             } catch (Exception err) {
-                System.out.println(err.getMessage());
+                LOGGER.error(err.getMessage());
             }
         }
         totalNewRows++;
 
         return totalNewRows;
+    }
+
+    private void saveTableAllTransport(List<DataFromTX> dataFromTXESList, String dataUUID, String tableID) {
+        TableData tableData = new TableData(dataUUID, tableID);
+
+
+        for (int i = 0; i < dataFromTXESList.size(); i++) {
+
+            tableData.getData().add(new RowData("bus-number-b" + (i + 1), "textbox", dataFromTXESList.get(i).getRouteNumber()));
+
+            tableData.getData().add(new RowData("tt_trips-b" + (i + 1), "textbox", String.valueOf(dataFromTXESList.get(i).getTT_trips())));
+
+            tableData.getData().add(new RowData("tt_trips_sum-b" + (i + 1), "textbox", String.valueOf(dataFromTXESList.get(i).getTT_trips_sum())));
+
+            tableData.getData().add(new RowData("mtt_trips-b" + (i + 1), "textbox", String.valueOf(dataFromTXESList.get(i).getMTT_trips())));
+
+            tableData.getData().add(new RowData("mtt_trips_sum-b" + (i + 1), "textbox", String.valueOf(dataFromTXESList.get(i).getMTT_trips_sum())));
+
+            tableData.getData().add(new RowData("sms_transactions-b" + (i + 1), "textbox", String.valueOf(dataFromTXESList.get(i).getSMS_transactions())));
+        }
+        Response response = feignClientRepo.saveTableData(getAuthorization(), tableData);
+        LOGGER.info("save All Transport, response = " + response.body().toString());
     }
 
     private void saveTableStorageIntoForm(HashMap<Double, Double> storageData, String dataUUID, String tableID) {
@@ -332,6 +426,7 @@ public class ALLTransportService {
             i++;
         }
         Response response = feignClientRepo.saveTableData(getAuthorization(), tableData);
+        LOGGER.info("save Table Storage, response = " + response.body().toString());
     }
 
     private void saveTableBusesIntoForm(List<BusData> busDataList, String dataUUID, String tableID, Map<String, String> smsDatas) {
@@ -355,6 +450,7 @@ public class ALLTransportService {
             i++;
         }
         Response response = feignClientRepo.saveTableData(getAuthorization(), tableData);
+        LOGGER.info("save Table buses, response = " + response.body().toString());
     }
 
     private void saveTableCategoryIntoForm(TreeSet<String> categories, String dataUUID, String tableID) {
@@ -382,7 +478,9 @@ public class ALLTransportService {
             i++;
         }
 
-        feignClientRepo.saveTableData(getAuthorization(), tableData);
+        Response response = feignClientRepo.saveTableData(getAuthorization(), tableData);
+
+        LOGGER.info("save Table Category, response = " + response.body().toString());
     }
 
     private TreeSet<String> getDriveWayCategories(XSSFSheet mySheet, List<BusData> busDataList) {
@@ -405,7 +503,7 @@ public class ALLTransportService {
                         }
                         busDataList.add(new BusData(busN));
                     } catch (Exception err) {
-                        System.out.println("ended");
+                        LOGGER.error(err.getMessage());
                     }
                 }
 
@@ -473,22 +571,11 @@ public class ALLTransportService {
                     }
 
                     busData.getCategoryEachData().add(categoryEachData);
-                } else {
-                    //System.out.println("Не прошедшие квалификацию " + cellValue);
                 }
-
             }
         } catch (Exception err) {
             LOGGER.error(String.valueOf(err));
         }
-
-//        for (String category : categories) {
-//            System.out.println(category);
-//        }
-
-//        for (BusData busData : busDataList) {
-//            System.out.println(busData);
-//        }
         return categories;
     }
 
@@ -513,18 +600,15 @@ public class ALLTransportService {
                 JSONArray categoriesData = object.optJSONArray("data");
                 for (int y = 0; y < categoriesData.length(); y++) {
                     JSONObject catObject = categoriesData.optJSONObject(y);
-                    //System.out.println(catObject);
-                    //System.out.println(catObject.optString("value"));
 
                     String catValue = catObject.optString("id");
 
                     if (!catValue.isEmpty() && catValue.contains("name")) {
                         if (!catObject.optString("value").isEmpty()) {
-                            System.out.println("value " + catObject.optString("value"));
                             if (catValue.charAt(catValue.length() - 2) == 'b') {
-                                System.out.println("first part = " + catValue.substring(catValue.length() - 1));
+                                //System.out.println("first part = " + catValue.substring(catValue.length() - 1));
                             } else {
-                                System.out.println("second part = " + catValue.substring(catValue.length() - 2));
+                                //System.out.println("second part = " + catValue.substring(catValue.length() - 2));
                             }
                         }
                     } else if (!catValue.isEmpty() && catValue.contains("price")) {
@@ -601,7 +685,6 @@ public class ALLTransportService {
         try (BufferedReader buffer = new BufferedReader(new InputStreamReader(response.body().asInputStream()))) {
             String resp = buffer.lines().collect(Collectors.joining("\n"));
             result = resp;
-            System.out.println(resp);
         } catch (IOException ex) {
             throw new RuntimeException("Failed to process response body.", ex);
         }
@@ -658,5 +741,23 @@ public class ALLTransportService {
         private Double beneficiaries_sum;
         private Double basic_price_percent;
         private Double beneficiaries_percent;
+    }
+
+    @Data
+    public static class DataFromTX {
+        public DataFromTX(String routeNumber) {
+            this.routeNumber = routeNumber;
+            this.TT_trips = 0.0;
+            this.TT_trips_sum = 0.0;
+            this.MTT_trips = 0.0;
+            this.MTT_trips_sum = 0.0;
+        }
+
+        private String routeNumber;
+        private Double TT_trips;
+        private Double TT_trips_sum;
+        private Double MTT_trips;
+        private Double MTT_trips_sum;
+        private Double SMS_transactions;
     }
 }
